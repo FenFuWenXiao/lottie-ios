@@ -1057,11 +1057,6 @@ public class LottieAnimationLayer: CALayer {
     // the correct time. The `CATransaction`s in this method interfere
     // with the ones managed by the performance test, and aren't actually
     // necessary in a headless environment, so we disable them.
-    if TestHelpers.performanceTestsAreRunning {
-      rootAnimationLayer?.currentFrame = newFrame
-      rootAnimationLayer?.forceDisplayUpdate()
-      return
-    }
 
     CATransaction.begin()
     CATransaction.setCompletionBlock {

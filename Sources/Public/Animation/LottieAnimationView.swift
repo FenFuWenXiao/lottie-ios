@@ -966,17 +966,12 @@ open class LottieAnimationView: LottieAnimationViewBase {
       // the correct time. The `CATransaction`s in this method interfere
       // with the ones managed by the performance test, and aren't actually
       // necessary in a headless environment, so we disable them.
-      if TestHelpers.performanceTestsAreRunning {
-        animationLayer.position = position
-        animationLayer.transform = xform
-      } else {
         CATransaction.begin()
         CATransaction.setAnimationDuration(0.0)
         CATransaction.setAnimationTimingFunction(CAMediaTimingFunction(name: .linear))
         animationLayer.position = position
         animationLayer.transform = xform
         CATransaction.commit()
-      }
     }
 
     if shouldForceUpdates {

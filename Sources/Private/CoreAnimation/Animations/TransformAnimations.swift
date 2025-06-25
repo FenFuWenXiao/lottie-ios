@@ -198,19 +198,6 @@ extension CALayer {
 
     // When `rotation.x` or `rotation.y` is used, it doesn't render property in test snapshots
     // but do renders correctly on the simulator / device
-    if TestHelpers.snapshotTestsAreRunning {
-      if containsXRotationValues {
-        context.logger.warn("""
-          `rotation.x` values are not displayed correctly in snapshot tests
-          """)
-      }
-
-      if containsYRotationValues {
-        context.logger.warn("""
-          `rotation.y` values are not displayed correctly in snapshot tests
-          """)
-      }
-    }
 
     // Lottie animation files express rotation in degrees
     // (e.g. 90º, 180º, 360º) so we convert to radians to get the
