@@ -125,55 +125,194 @@ extension Data {
     skipCRC32: Bool = false,
     provider: Provider,
     consumer: Consumer)
-    throws -> CRC32
-  {
-    var crc32 = CRC32(0)
-    let destPointer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
-    defer { destPointer.deallocate() }
-    let streamPointer = UnsafeMutablePointer<compression_stream>.allocate(capacity: 1)
-    defer { streamPointer.deallocate() }
-    var stream = streamPointer.pointee
-    var status = compression_stream_init(&stream, operation, COMPRESSION_ZLIB)
-    guard status != COMPRESSION_STATUS_ERROR else { throw CompressionError.invalidStream }
-    defer { compression_stream_destroy(&stream) }
-    stream.src_size = 0
-    stream.dst_ptr = destPointer
-    stream.dst_size = bufferSize
-    var position: Int64 = 0
-    var sourceData: Data?
-    repeat {
-      let isExhausted = stream.src_size == 0
-      if isExhausted {
-        do {
-          sourceData = try provider(position, Int(Swift.min(size - position, Int64(bufferSize))))
-          position += Int64(stream.prepare(for: sourceData))
-        } catch { throw error }
+    throws -> CRC32 {
+    #if os(macOS)
+      if #available(macOS 10.11, *) {
+          var crc32 = CRC32(0)
+          let destPointer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+          defer { destPointer.deallocate() }
+          let streamPointer = UnsafeMutablePointer<compression_stream>.allocate(capacity: 1)
+          defer { streamPointer.deallocate() }
+          var stream = streamPointer.pointee
+          var status = compression_stream_init(&stream, operation, COMPRESSION_ZLIB)
+          guard status != COMPRESSION_STATUS_ERROR else { throw CompressionError.invalidStream }
+          defer { compression_stream_destroy(&stream) }
+          stream.src_size = 0
+          stream.dst_ptr = destPointer
+          stream.dst_size = bufferSize
+          var position: Int64 = 0
+          var sourceData: Data?
+          repeat {
+            let isExhausted = stream.src_size == 0
+            if isExhausted {
+              do {
+                sourceData = try provider(position, Int(Swift.min(size - position, Int64(bufferSize))))
+                position += Int64(stream.prepare(for: sourceData))
+              } catch { throw error }
+            }
+            if let sourceData = sourceData {
+              sourceData.withUnsafeBytes { rawBufferPointer in
+                if let baseAddress = rawBufferPointer.baseAddress {
+                  let pointer = baseAddress.assumingMemoryBound(to: UInt8.self)
+                  stream.src_ptr = pointer.advanced(by: sourceData.count - stream.src_size)
+                  let flags = sourceData.count < bufferSize ? Int32(COMPRESSION_STREAM_FINALIZE.rawValue) : 0
+                  status = compression_stream_process(&stream, flags)
+                }
+              }
+              if
+                operation == COMPRESSION_STREAM_ENCODE,
+                isExhausted, skipCRC32 == false { crc32 = sourceData.crc32(checksum: crc32) }
+            }
+            switch status {
+            case COMPRESSION_STATUS_OK, COMPRESSION_STATUS_END:
+              let outputData = Data(bytesNoCopy: destPointer, count: bufferSize - stream.dst_size, deallocator: .none)
+              try consumer(outputData)
+              if operation == COMPRESSION_STREAM_DECODE, !skipCRC32 { crc32 = outputData.crc32(checksum: crc32) }
+              stream.dst_ptr = destPointer
+              stream.dst_size = bufferSize
+            default: throw CompressionError.corruptedData
+            }
+          } while status == COMPRESSION_STATUS_OK
+          return crc32
+      } else {
+        return try processUsingZlib(
+              operation: operation,
+              size: size,
+              bufferSize: bufferSize,
+              skipCRC32: skipCRC32,
+              provider: provider,
+              consumer: consumer)
       }
-      if let sourceData = sourceData {
-        sourceData.withUnsafeBytes { rawBufferPointer in
-          if let baseAddress = rawBufferPointer.baseAddress {
-            let pointer = baseAddress.assumingMemoryBound(to: UInt8.self)
-            stream.src_ptr = pointer.advanced(by: sourceData.count - stream.src_size)
-            let flags = sourceData.count < bufferSize ? Int32(COMPRESSION_STREAM_FINALIZE.rawValue) : 0
-            status = compression_stream_process(&stream, flags)
-          }
-        }
-        if
-          operation == COMPRESSION_STREAM_ENCODE,
-          isExhausted, skipCRC32 == false { crc32 = sourceData.crc32(checksum: crc32) }
-      }
-      switch status {
-      case COMPRESSION_STATUS_OK, COMPRESSION_STATUS_END:
-        let outputData = Data(bytesNoCopy: destPointer, count: bufferSize - stream.dst_size, deallocator: .none)
-        try consumer(outputData)
-        if operation == COMPRESSION_STREAM_DECODE, !skipCRC32 { crc32 = outputData.crc32(checksum: crc32) }
+    #else
+        var crc32 = CRC32(0)
+        let destPointer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+        defer { destPointer.deallocate() }
+        let streamPointer = UnsafeMutablePointer<compression_stream>.allocate(capacity: 1)
+        defer { streamPointer.deallocate() }
+        var stream = streamPointer.pointee
+        var status = compression_stream_init(&stream, operation, COMPRESSION_ZLIB)
+        guard status != COMPRESSION_STATUS_ERROR else { throw CompressionError.invalidStream }
+        defer { compression_stream_destroy(&stream) }
+        stream.src_size = 0
         stream.dst_ptr = destPointer
         stream.dst_size = bufferSize
-      default: throw CompressionError.corruptedData
-      }
-    } while status == COMPRESSION_STATUS_OK
-    return crc32
+        var position: Int64 = 0
+        var sourceData: Data?
+        repeat {
+          let isExhausted = stream.src_size == 0
+          if isExhausted {
+            do {
+              sourceData = try provider(position, Int(Swift.min(size - position, Int64(bufferSize))))
+              position += Int64(stream.prepare(for: sourceData))
+            } catch { throw error }
+          }
+          if let sourceData = sourceData {
+            sourceData.withUnsafeBytes { rawBufferPointer in
+              if let baseAddress = rawBufferPointer.baseAddress {
+                let pointer = baseAddress.assumingMemoryBound(to: UInt8.self)
+                stream.src_ptr = pointer.advanced(by: sourceData.count - stream.src_size)
+                let flags = sourceData.count < bufferSize ? Int32(COMPRESSION_STREAM_FINALIZE.rawValue) : 0
+                status = compression_stream_process(&stream, flags)
+              }
+            }
+            if
+              operation == COMPRESSION_STREAM_ENCODE,
+              isExhausted, skipCRC32 == false { crc32 = sourceData.crc32(checksum: crc32) }
+          }
+          switch status {
+          case COMPRESSION_STATUS_OK, COMPRESSION_STATUS_END:
+            let outputData = Data(bytesNoCopy: destPointer, count: bufferSize - stream.dst_size, deallocator: .none)
+            try consumer(outputData)
+            if operation == COMPRESSION_STREAM_DECODE, !skipCRC32 { crc32 = outputData.crc32(checksum: crc32) }
+            stream.dst_ptr = destPointer
+            stream.dst_size = bufferSize
+          default: throw CompressionError.corruptedData
+          }
+        } while status == COMPRESSION_STATUS_OK
+        return crc32
+    #endif
   }
+
+    private static func processUsingZlib(
+      operation: compression_stream_operation,
+      size: Int64,
+      bufferSize: Int,
+      skipCRC32: Bool,
+      provider: Provider,
+      consumer: Consumer
+    ) throws -> CRC32 {
+      var stream = z_stream()
+      var crc32: CRC32 = 0
+
+      let destPointer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+      defer { destPointer.deallocate() }
+
+      let initStatus: Int32
+      switch operation {
+      case COMPRESSION_STREAM_ENCODE:
+        initStatus = deflateInit_(&stream, Z_DEFAULT_COMPRESSION, ZLIB_VERSION, Int32(MemoryLayout<z_stream>.size))
+      case COMPRESSION_STREAM_DECODE:
+        initStatus = inflateInit_(&stream, ZLIB_VERSION, Int32(MemoryLayout<z_stream>.size))
+      default:
+        throw CompressionError.invalidStream
+      }
+      guard initStatus == Z_OK else { throw CompressionError.invalidStream }
+
+      defer {
+        switch operation {
+        case COMPRESSION_STREAM_ENCODE: deflateEnd(&stream)
+        case COMPRESSION_STREAM_DECODE: inflateEnd(&stream)
+        default: break
+        }
+      }
+
+      var position: Int64 = 0
+      repeat {
+          let sourceData = try provider(position, Int(Swift.min(size - position, Int64(bufferSize))))
+        position += Int64(sourceData.count)
+
+        try sourceData.withUnsafeBytes { rawBufferPointer in
+          guard let baseAddress = rawBufferPointer.baseAddress?.assumingMemoryBound(to: UInt8.self) else {
+            throw CompressionError.corruptedData
+          }
+
+          stream.next_in = UnsafeMutablePointer(mutating: baseAddress)
+          stream.avail_in = UInt32(sourceData.count)
+
+          if operation == COMPRESSION_STREAM_ENCODE, !skipCRC32 {
+            crc32 = sourceData.crc32(checksum: crc32)
+          }
+
+          repeat {
+            stream.next_out = destPointer
+            stream.avail_out = UInt32(bufferSize)
+
+            let flush = stream.avail_in == 0 ? Z_FINISH : Z_NO_FLUSH
+            let status: Int32 = {
+              switch operation {
+              case COMPRESSION_STREAM_ENCODE: return deflate(&stream, flush)
+              case COMPRESSION_STREAM_DECODE: return inflate(&stream, Z_NO_FLUSH)
+              default: return Z_STREAM_ERROR
+              }
+            }()
+
+            guard status != Z_STREAM_ERROR else { throw CompressionError.corruptedData }
+
+            let outputCount = bufferSize - Int(stream.avail_out)
+            let outputData = Data(bytes: destPointer, count: outputCount)
+            try consumer(outputData)
+
+            if operation == COMPRESSION_STREAM_DECODE, !skipCRC32 {
+              crc32 = outputData.crc32(checksum: crc32)
+            }
+
+          } while stream.avail_out == 0
+        }
+
+      } while position < size
+
+      return crc32
+    }
 }
 
 extension compression_stream {

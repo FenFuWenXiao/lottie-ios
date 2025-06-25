@@ -239,9 +239,18 @@ open class AnimatedControl: LottieControlType {
     animationView.isUserInteractionEnabled = false
     #endif
 
-    animationView.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
-    animationView.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
-    animationView.topAnchor.constraint(equalTo: topAnchor).isActive = true
-    animationView.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
+    #if os(macOS)
+      if #available(macOS 10.11, *) {
+          animationView.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
+          animationView.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
+          animationView.topAnchor.constraint(equalTo: topAnchor).isActive = true
+          animationView.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
+      }
+    #else
+      animationView.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
+      animationView.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
+      animationView.topAnchor.constraint(equalTo: topAnchor).isActive = true
+      animationView.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
+    #endif
   }
 }

@@ -439,14 +439,36 @@ extension ViewType {
 extension CGSize {
   /// A `CGSize` with `noIntrinsicMetric` for both its width and height.
   fileprivate static var noIntrinsicMetric: CGSize {
-    .init(width: ViewType.noIntrinsicMetric, height: ViewType.noIntrinsicMetric)
+    #if os(macOS)
+    if #available(macOS 10.11, *) {
+      return .init(width: ViewType.noIntrinsicMetric, height: ViewType.noIntrinsicMetric)
+    } else {
+      let noIntrinsicMetric: CGFloat = -1.0
+      return .init(width: noIntrinsicMetric, height: noIntrinsicMetric)
+    }
+    #else
+    return .init(width: ViewType.noIntrinsicMetric, height: ViewType.noIntrinsicMetric)
+    #endif
   }
 
   /// Returns a `CGSize` with its width and/or height replaced with the corresponding field of the
   /// provided `fallback` size if they are `UIView.noIntrinsicMetric`.
   fileprivate func replacingNoIntrinsicMetric(with fallback: CGSize) -> CGSize {
-    .init(
-      width: width == ViewType.noIntrinsicMetric ? fallback.width : width,
-      height: height == ViewType.noIntrinsicMetric ? fallback.height : height)
+    #if os(macOS)
+    if #available(macOS 10.11, *) {
+      return .init(
+        width: width == ViewType.noIntrinsicMetric ? fallback.width : width,
+        height: height == ViewType.noIntrinsicMetric ? fallback.height : height)
+    } else {
+      let noIntrinsicMetric: CGFloat = -1.0
+      return .init(
+        width: width == noIntrinsicMetric ? fallback.width : width,
+        height: height == noIntrinsicMetric ? fallback.height : height)
+    }
+    #else
+    return .init(
+        width: width == ViewType.noIntrinsicMetric ? fallback.width : width,
+        height: height == ViewType.noIntrinsicMetric ? fallback.height : height)
+    #endif
   }
 }

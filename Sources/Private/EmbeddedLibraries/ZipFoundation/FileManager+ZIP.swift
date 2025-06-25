@@ -174,7 +174,16 @@ extension FileManager {
         if let progress = progress {
           let itemURL = sourceURL.appendingPathComponent(entryPath)
           let entryProgress = archive.makeProgressForAddingItem(at: itemURL)
-          progress.addChild(entryProgress, withPendingUnitCount: entryProgress.totalUnitCount)
+          #if os(macOS)
+            if #available(macOS 10.11, *) {
+                progress.addChild(entryProgress, withPendingUnitCount: entryProgress.totalUnitCount)
+            } else {
+                progress.becomeCurrent(withPendingUnitCount: entryProgress.totalUnitCount)
+                defer { progress.resignCurrent() }
+            }
+          #else
+            progress.addChild(entryProgress, withPendingUnitCount: entryProgress.totalUnitCount)
+          #endif
           try archive.addEntry(
             with: finalEntryPath,
             relativeTo: finalBaseURL,
@@ -249,7 +258,16 @@ extension FileManager {
       let crc32: CRC32
       if let progress = progress {
         let entryProgress = archive.makeProgressForReading(entry)
-        progress.addChild(entryProgress, withPendingUnitCount: entryProgress.totalUnitCount)
+        #if os(macOS)
+          if #available(macOS 10.11, *) {
+              progress.addChild(entryProgress, withPendingUnitCount: entryProgress.totalUnitCount)
+          } else {
+              progress.becomeCurrent(withPendingUnitCount: entryProgress.totalUnitCount)
+              defer { progress.resignCurrent() }
+          }
+        #else
+          progress.addChild(entryProgress, withPendingUnitCount: entryProgress.totalUnitCount)
+        #endif
         crc32 = try archive.extract(entry, to: entryURL, skipCRC32: skipCRC32, progress: entryProgress)
       } else {
         crc32 = try archive.extract(entry, to: entryURL, skipCRC32: skipCRC32)
