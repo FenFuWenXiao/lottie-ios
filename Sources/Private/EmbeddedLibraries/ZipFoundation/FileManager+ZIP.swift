@@ -174,7 +174,9 @@ extension FileManager {
         if let progress {
           let itemURL = sourceURL.appendingPathComponent(entryPath)
           let entryProgress = archive.makeProgressForAddingItem(at: itemURL)
-          progress.addChild(entryProgress, withPendingUnitCount: entryProgress.totalUnitCount)
+          if #available(macOS 10.11, *) {
+            progress.addChild(entryProgress, withPendingUnitCount: entryProgress.totalUnitCount)
+          }
           try archive.addEntry(
             with: finalEntryPath,
             relativeTo: finalBaseURL,
@@ -249,7 +251,9 @@ extension FileManager {
       let crc32: CRC32
       if let progress {
         let entryProgress = archive.makeProgressForReading(entry)
-        progress.addChild(entryProgress, withPendingUnitCount: entryProgress.totalUnitCount)
+        if #available(macOS 10.11, *) {
+          progress.addChild(entryProgress, withPendingUnitCount: entryProgress.totalUnitCount)
+        }
         crc32 = try archive.extract(entry, to: entryURL, skipCRC32: skipCRC32, progress: entryProgress)
       } else {
         crc32 = try archive.extract(entry, to: entryURL, skipCRC32: skipCRC32)

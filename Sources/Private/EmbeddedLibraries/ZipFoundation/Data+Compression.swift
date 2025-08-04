@@ -114,11 +114,51 @@ extension Data {
 // MARK: - Apple Platforms
 
 #if os(macOS) || canImport(UIKit)
+#if canImport(Compression)
 import Compression
+#endif
 
 extension Data {
 
-  static func process(
+    static func process(
+        operation: compression_stream_operation,
+        size: Int64,
+        bufferSize: Int,
+        skipCRC32: Bool = false,
+        provider: Provider,
+        consumer: Consumer
+    ) throws -> CRC32 {
+        if #available(macOS 10.11, *) {
+            return try processWithCompression(
+                operation: operation,
+                size: size,
+                bufferSize: bufferSize,
+                skipCRC32: skipCRC32,
+                provider: provider,
+                consumer: consumer
+            )
+        } else {
+            let op: CompressionOperation
+            switch operation {
+            case COMPRESSION_STREAM_ENCODE: op = .encode
+            case COMPRESSION_STREAM_DECODE: op = .decode
+            default:
+                op = .encode
+            }
+            return try processWithZlib(
+                operation: op,
+                size: size,
+                bufferSize: bufferSize,
+                skipCRC32: skipCRC32,
+                provider: provider,
+                consumer: consumer
+            )
+        }
+    }
+
+    #if canImport(Compression)
+    @available(macOS 10.11, *)
+  static func processWithCompression(
     operation: compression_stream_operation,
     size: Int64,
     bufferSize: Int,
@@ -174,6 +214,86 @@ extension Data {
     } while status == COMPRESSION_STATUS_OK
     return crc32
   }
+    #endif
+
+    private static func processWithZlib(
+        operation: CompressionOperation,
+        size: Int64,
+        bufferSize: Int,
+        skipCRC32: Bool,
+        provider: Provider,
+        consumer: Consumer
+    ) throws -> CRC32 {
+        var crc32 = CRC32(0)
+        let destPointer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+        defer { destPointer.deallocate() }
+
+        var strm = z_stream()
+        strm.zalloc = nil
+        strm.zfree = nil
+        strm.opaque = nil
+
+        let windowBits = 15 // zlib default
+
+        let initStatus: Int32
+        switch operation {
+        case .encode:
+            initStatus = deflateInit2_(&strm, Z_DEFAULT_COMPRESSION, Z_DEFLATED, Int32(windowBits), 8, Z_DEFAULT_STRATEGY, ZLIB_VERSION, Int32(MemoryLayout<z_stream>.size))
+        case .decode:
+            initStatus = inflateInit2_(&strm, Int32(windowBits), ZLIB_VERSION, Int32(MemoryLayout<z_stream>.size))
+        }
+
+        guard initStatus == Z_OK else { throw CompressionError.invalidStream }
+        defer {
+            switch operation {
+            case .encode: deflateEnd(&strm)
+            case .decode: inflateEnd(&strm)
+            }
+        }
+
+        var position: Int64 = 0
+        var done = false
+
+        while !done {
+            let sourceData = try provider(position, Int(Swift.min(size - position, Int64(bufferSize))))
+            position += Int64(sourceData.count)
+
+            var inputBytes = [UInt8](sourceData)
+            strm.next_in = UnsafeMutablePointer(mutating: inputBytes)
+            strm.avail_in = uInt(inputBytes.count)
+
+            repeat {
+                strm.next_out = destPointer
+                strm.avail_out = uInt(bufferSize)
+
+                let ret: Int32
+                switch operation {
+                case .encode:
+                    ret = deflate(&strm, position >= size ? Z_FINISH : Z_NO_FLUSH)
+                case .decode:
+                    ret = inflate(&strm, Z_NO_FLUSH)
+                }
+
+                let have = bufferSize - Int(strm.avail_out)
+                if have > 0 {
+                    let outputData = Data(bytes: destPointer, count: have)
+                    try consumer(outputData)
+                    if operation == .decode, !skipCRC32 {
+                        crc32 = outputData.crc32(checksum: crc32)
+                    }
+                }
+
+                if ret == Z_STREAM_END {
+                    done = true
+                } else if ret != Z_OK && ret != Z_BUF_ERROR {
+                    throw CompressionError.corruptedData
+                }
+            } while strm.avail_out == 0
+            if strm.avail_in == 0 { break }
+        }
+
+        return crc32
+    }
 }
 
 extension compression_stream {
@@ -184,6 +304,11 @@ extension compression_stream {
     src_size = sourceData.count
     return sourceData.count
   }
+}
+
+enum CompressionOperation {
+    case encode
+    case decode
 }
 
 // MARK: - Linux

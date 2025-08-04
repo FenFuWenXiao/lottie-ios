@@ -1159,6 +1159,7 @@
 		D453D8B228FF9EA900D3F49C /* DefaultAnimationCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = D453D8B028FF9E3A00D3F49C /* DefaultAnimationCache.swift */; };
 		D453D8B328FF9EAA00D3F49C /* DefaultAnimationCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = D453D8B028FF9E3A00D3F49C /* DefaultAnimationCache.swift */; };
 		D453D8B428FF9EAA00D3F49C /* DefaultAnimationCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = D453D8B028FF9E3A00D3F49C /* DefaultAnimationCache.swift */; };
+		EF1E86452E4061F0001B6AE9 /* NSViewExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF1E86442E4061F0001B6AE9 /* NSViewExtension.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1485,6 +1486,7 @@
 		D453D8AA28FE6EE300D3F49C /* LottieAnimationCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LottieAnimationCache.swift; sourceTree = "<group>"; };
 		D453D8AE28FF9BC600D3F49C /* AnimationCacheProviderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimationCacheProviderTests.swift; sourceTree = "<group>"; };
 		D453D8B028FF9E3A00D3F49C /* DefaultAnimationCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultAnimationCache.swift; sourceTree = "<group>"; };
+		EF1E86442E4061F0001B6AE9 /* NSViewExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NSViewExtension.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -2209,6 +2211,7 @@
 				2E9C95C32822F43100677516 /* AnimationKeypathExtension.swift */,
 				2E9C95C42822F43100677516 /* StringExtensions.swift */,
 				2E9C95C52822F43100677516 /* DataExtension.swift */,
+				EF1E86442E4061F0001B6AE9 /* NSViewExtension.swift */,
 				2E9C95C62822F43100677516 /* MathKit.swift */,
 			);
 			path = Extensions;
@@ -3301,6 +3304,7 @@
 				2E9C97452822F43100677516 /* AnimatorNodeDebugging.swift in Sources */,
 				2E9C96D92822F43100677516 /* AnimatorNode.swift in Sources */,
 				2E9C96222822F43100677516 /* Bundle.swift in Sources */,
+				EF1E86452E4061F0001B6AE9 /* NSViewExtension.swift in Sources */,
 				2E9C96D02822F43100677516 /* ShapeContainerLayer.swift in Sources */,
 				08E206E02A56014E002DCE17 /* StyledView.swift in Sources */,
 				08E207462A56014E002DCE17 /* DidDisplayProviding.swift in Sources */,
@@ -4197,7 +4201,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				MARKETING_VERSION = 1.0;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu11 gnu++17";
@@ -4231,7 +4235,7 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.11;
+				MACOSX_DEPLOYMENT_TARGET = 10.10;
 				MARKETING_VERSION = 1.0;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
 				MODULE_VERIFIER_SUPPORTED_LANGUAGE_STANDARDS = "gnu11 gnu++17";

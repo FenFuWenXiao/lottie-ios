@@ -237,9 +237,20 @@ open class AnimatedControl: LottieControlType {
     animationView.isUserInteractionEnabled = false
     #endif
 
-    animationView.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
-    animationView.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
-    animationView.topAnchor.constraint(equalTo: topAnchor).isActive = true
-    animationView.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
+    if #available(macOS 10.11, *) {
+      animationView.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
+      animationView.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
+      animationView.topAnchor.constraint(equalTo: topAnchor).isActive = true
+      animationView.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
+    } else {
+      NSLayoutConstraint(item: animationView, attribute: .leading, relatedBy: .equal, toItem: self, attribute: .leading, multiplier: 1.0, constant: 0).isActive = true
+      NSLayoutConstraint(item: animationView, attribute: .trailing, relatedBy: .equal, toItem: self, attribute: .trailing, multiplier: 1.0, constant: 0).isActive = true
+      NSLayoutConstraint(item: animationView, attribute: .top, relatedBy: .equal, toItem: self, attribute: .top, multiplier: 1.0, constant: 0).isActive = true
+      NSLayoutConstraint(item: animationView, attribute: .bottom, relatedBy: .equal, toItem: self, attribute: .bottom, multiplier: 1.0, constant: 0).isActive = true
+    }
+//    animationView.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
+//    animationView.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
+//    animationView.topAnchor.constraint(equalTo: topAnchor).isActive = true
+//    animationView.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
   }
 }

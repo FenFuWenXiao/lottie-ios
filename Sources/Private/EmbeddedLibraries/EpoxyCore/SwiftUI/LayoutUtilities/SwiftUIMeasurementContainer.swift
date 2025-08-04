@@ -440,15 +440,15 @@ extension ViewType {
 extension CGSize {
   /// A `CGSize` with `noIntrinsicMetric` for both its width and height.
   fileprivate static var noIntrinsicMetric: CGSize {
-    .init(width: ViewType.noIntrinsicMetric, height: ViewType.noIntrinsicMetric)
+    .init(width: ViewType.safeNoIntrinsicMetric, height: ViewType.safeNoIntrinsicMetric)
   }
 
   /// Returns a `CGSize` with its width and/or height replaced with the corresponding field of the
   /// provided `fallback` size if they are `UIView.noIntrinsicMetric`.
   fileprivate func replacingNoIntrinsicMetric(with fallback: CGSize) -> CGSize {
     .init(
-      width: width == ViewType.noIntrinsicMetric ? fallback.width : width,
-      height: height == ViewType.noIntrinsicMetric ? fallback.height : height)
+      width: width == ViewType.safeNoIntrinsicMetric ? fallback.width : width,
+      height: height == ViewType.safeNoIntrinsicMetric ? fallback.height : height)
   }
 }
 #endif
